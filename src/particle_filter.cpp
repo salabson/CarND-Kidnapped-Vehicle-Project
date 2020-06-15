@@ -63,7 +63,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     particles.push_back(particle);
   
     is_initialized = true;
-  {
+  }
   
 
 }
@@ -77,7 +77,40 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    */
-   
+    
+   // create ramdom number generator engine
+   std::default_random_engine gen;
+    
+   for(int i=0; i<num_particles; i++) {
+          // theta is zero
+         if(particles[i].theta==0) {
+            particles[i].x = particles[i].x + velocity*delta_t*cos(particles[i].theta);
+            particles[i].y = particles[i].y + velocity*delta_t*sin(particles[i].theta);
+            
+            
+         } 
+         // theta is zero
+         else {
+            particles[i].x = particles[i].x + velocity/yaw_rate*(sin(particles[i].theta+yaw_rate*delta_t)-sin(particles[i].theta));
+            particles[i].y = particles[i].y + velocity/yaw_rate*(cos(particles[i].theta+yaw_rate*delta_t)-cos(particles[i].theta));
+            particles[i].theta = particles[i].theta + yaw_rate*delta_t;
+        }
+          // Add noise to the particle state
+            // create gaussian distribution for x, y and theta
+     	    normal_distribution<double> dist_x(particles[i].x ,std_pos[0]);
+            normal_distribution<double> dist_y(particles[i].y , std_pos[1]);
+            normal_distribution<double> dist_theta(particles[i].theta,std_pos[2]);
+            
+            // sample from gaussian distribution
+            double sample_x = dist_x(gen);
+            double sample_y = dist_y(gen);
+            double sample_theta = dist_theta(gen);
+           
+            particles[i].x = sample_x;
+            particles[i].y = sample_y;
+            particles[i].theta = sample_theta;
+         
+       }
 }
 
 void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted, 
@@ -90,6 +123,21 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
    *   probably find it useful to implement this method and use it as a helper 
    *   during the updateWeights phase.
    */
+    double shortest_dist = 1000.0;
+    int shortest_dist_id = -1;
+
+   for(int i=0; i<observations.size(); i++){
+      for(int j=0; j<predicted.size(); j++){
+          double distance = dist(observations[i].x, observations[i].y, predicted[j].x, predicted[j].y);
+          if(distance < shortest_dist){
+             shortest_dist = distance;
+             shortest_dist_id =predicted[j].id;
+            }
+      {
+      
+      observations[i].id = predicted[shortest_dist_id].id;
+   }
+    
 
 }
 
