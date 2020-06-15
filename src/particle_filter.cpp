@@ -41,16 +41,16 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
  
   
  
-   for(int =0; i<num_particles; i++){
+   for(int i=0; i<num_particles; i++){
 
       // create gaussian distribution for x, y and theta
       normal_distribution<double> dist_x(x,std[0]);
-      normal_distribution<double> dist_y(y, std[1];
+      normal_distribution<double> dist_y(y, std[1]);
       normal_distribution<double> dist_theta(theta,std[2]);
     
      // sample from gaussian distribution
      double sample_x = dist_x(gen);
-     double sample_y = dist_x(gen);
+     double sample_y = dist_y(gen);
      double sample_theta = dist_x(gen);
     
      // intialize particle from gaussian distribution 
@@ -60,7 +60,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
      particle.theta = sample_theta;
     
     // Append each particle to the list of particles
-    particles.append(particle);
+    particles.push_back(particle);
   
     is_initialized = true;
   {
@@ -77,7 +77,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    */
-
+   
 }
 
 void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted, 
