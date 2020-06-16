@@ -106,7 +106,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
             double noise_x = dist_x(gen);
             double noise_y = dist_y(gen);
             double noise_theta = dist_theta(gen);
-           
+           // Add noise
             particles[i].x += noise_x;
             particles[i].y += noise_y;
             particles[i].theta += noise_theta;
@@ -138,6 +138,8 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
       
       observations[i].id = predicted[shortest_dist_id].id;
    }
+
+   
     
 
 }
@@ -159,25 +161,81 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
     for(int i=0; i<num_particles; i++) {
+      
        double x_part, y_part, theta_part, x_obs, y_obs;
+       int id_part;
+       
+       id_part = particles[i].id;
        x_part = particles[i].x;
        y_part = particles[i].y;
        theta_part = particles[i].theta; 
       
+       // Map landmarks predicted to be within the particle sensor range
+       vector<LandmarkObs> predicted_landmarks;
+       for(int k=0; k<map_landmarks.landmark_lis.size(); k++) {
+            
+            double x_ldm, y_ldm;
+            int id_ldm;
+            
+            id_ldm = map_landmarks.landmark_list[k].id;
+            x_ldm = map_landmarks.landmark_list[k].x_f;
+            y_ldm = map_landmarks.landmark_list[k].x_f;
+            
+            // Find the landmarks in the map that are within the particle sensor range
+            double distance = dist(x_part, y_part, x_ldm, x_ldm);
+
+            if(distance <= sensor_range){
+             // Add landmark to the predicted landmarks
+             map_landmarks.single_landmark_s.id = id_ldm;
+             map_landmarks.single_landmark_s.x_f = x_ldm;
+             map_landmarks.single_landmark_s.y_f = y_ldm;
+             predicted_landmarks.push_back(single_landmark_s);
+             }
+        }
+       
+       
+       // Transform observed landmarks from vehicle frame to map frame
+       vector<LandmarkObs> trans_obs_list;
        for(int k=0; k<observations.size(); k++) {
             
+            double x_obs, y_obs; 
+            LandmarkObs trans_obs;
+
             x_obs = observations[k].x;
             y_obs = observations[k].y;
            
-            map_landmarks.single_landmark_s.id = particles[i].id;
-            map_landmarks.single_landmark_s.x_f = x_part + cos(theta_part)*x_obs - sin(theta_part)*y_obs;
-            map_landmarks.single_landmark_s.y_f = y_part + cos(theta_part)*x_obs - sin(theta_part)*y_obs;
-            map_landmarks.landmark_list.push_back(single_landmark_s);
+            trans_obs_list.x = x_part + cos(theta_part)*x_obs - sin(theta_part)*y_obs;
+            trans_obs_list.y = y_part + cos(theta_part)*x_obs - sin(theta_part)*y_obs;
+            trans_obs_list.id = observations[k].id;
+            trans_obs_list.push_back(trans_obs);
        }
        
        
+       dataAssociation(predicted_landmarks, trans_obs_list);
+       
+       for(int k=0; k<trans_obs_list.size(); k++){
+            
+            double  x = trans_obs_list[k].x; 
+            double y = trans_obs_list[k].y;
+            double sig_x = std_landmark[0];
+            double sig_y = std_landmark[1];
+            double mu_x;
+            double mu_y;
+            
+            for (int i=0; i<predicted_landmarks.size(); i++){
+                if(trans_obs_list[k].id == predicted_landmarks[i].id){
+                 mu_x= predicted_landmarks[i].x;
+                 mu_y = predicted_landmarks[i].y;
+                 break;
+                }
+             }   
+            
+       }
+      
+      particles[i].weight= measurement_prob(x,y,mu_x,mu_y,ig_x,sig_y);
        
    }
+
 }
 
 void ParticleFilter::resample() {
