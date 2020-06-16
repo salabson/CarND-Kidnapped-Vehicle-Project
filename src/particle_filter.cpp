@@ -55,6 +55,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     
      // intialize particle from gaussian distribution 
      Particle particle;
+     particle.id = i;
      particle.x = sample_x;
      particle.y = sample_y;
      particle.theta = sample_theta;
@@ -95,20 +96,20 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
             particles[i].y = particles[i].y + velocity/yaw_rate*(cos(particles[i].theta+yaw_rate*delta_t)-cos(particles[i].theta));
             particles[i].theta = particles[i].theta + yaw_rate*delta_t;
         }
-          // Add noise to the particle state
-            // create gaussian distribution for x, y and theta
-     	    normal_distribution<double> dist_x(particles[i].x ,std_pos[0]);
-            normal_distribution<double> dist_y(particles[i].y , std_pos[1]);
-            normal_distribution<double> dist_theta(particles[i].theta,std_pos[2]);
+          // Add sensor noise to the particle state
+            // create gaussian distribution with zero mean
+     	    normal_distribution<double> dist_x(0 ,std_pos[0]);
+            normal_distribution<double> dist_y(0, std_pos[1]);
+            normal_distribution<double> dist_theta(0,std_pos[2]);
             
             // sample from gaussian distribution
-            double sample_x = dist_x(gen);
-            double sample_y = dist_y(gen);
-            double sample_theta = dist_theta(gen);
+            double noise_x = dist_x(gen);
+            double noise_y = dist_y(gen);
+            double noise_theta = dist_theta(gen);
            
-            particles[i].x = sample_x;
-            particles[i].y = sample_y;
-            particles[i].theta = sample_theta;
+            particles[i].x += noise_x;
+            particles[i].y += noise_y;
+            particles[i].theta += noise_theta;
          
        }
 }
@@ -157,7 +158,26 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   and the following is a good resource for the actual equation to implement
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
-
+    for(int i=0; i<num_particles; i++) {
+       double x_part, y_part, theta_part, x_obs, y_obs;
+       x_part = particles[i].x;
+       y_part = particles[i].y;
+       theta_part = particles[i].theta; 
+      
+       for(int k=0; k<observations.size(); k++) {
+            
+            x_obs = observations[k].x;
+            y_obs = observations[k].y;
+           
+            map_landmarks.single_landmark_s.id = particles[i].id;
+            map_landmarks.single_landmark_s.x_f = x_part + cos(theta_part)*x_obs - sin(theta_part)*y_obs;
+            map_landmarks.single_landmark_s.y_f = y_part + cos(theta_part)*x_obs - sin(theta_part)*y_obs;
+            map_landmarks.landmark_list.push_back(single_landmark_s);
+       }
+       
+       
+       
+   }
 }
 
 void ParticleFilter::resample() {
