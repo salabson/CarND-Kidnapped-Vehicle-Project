@@ -246,7 +246,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
              } 
 
            double obs_w = gauss_norm * exp( -( pow(mu_x-x,2)/(2*pow(sig_x, 2)) + (pow(mu_y-y,2)/(2*pow(sig_y, 2))) ) );
-           std::cout << "particles[i].weight" << particles[i].weight << std::endl;
            particles[i].weight*=obs_w;
        }
     
@@ -272,7 +271,6 @@ void ParticleFilter::resample() {
     }
 
     //maxWeight = *max_element(weights.begin(), weights.end());
-    std::cout << "maxWeight" << maxWeight << std::endl;
     uniform_real_distribution<double> distDouble(0.0,maxWeight);
     uniform_int_distribution<int> distInt(0,num_particles-1);
     int index = distInt(gen);
